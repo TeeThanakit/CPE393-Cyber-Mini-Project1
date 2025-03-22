@@ -15,6 +15,7 @@ from crypto_utils import (
 
 private_key, public_key = generate_rsa_keypair()
 serialized_pubkey = serialize_public_key(public_key)
+from helper import fistCharToUpper
 
 with open("config.json", "r") as file:
     config = json.load(file)
@@ -33,8 +34,6 @@ users = {}
 # keep username && password
 # {'Teeboy': 'pass', 'moji': '123'}
 
-
-
 def load_users():
     global users
     if os.path.exists(config["USER_DB_FILE"]):
@@ -43,17 +42,12 @@ def load_users():
                 username, password = line.strip().split(",")
                 users[username] = password
 
-
-
 def authenticate(client_socket):
-    
     choice = client_socket.recv(1024).decode().strip()
     if choice == "1":  # Register
         register(client_socket, users)
-
     elif choice == "2":  # Login
         return login(client_socket, users)
-
     else:
         client_socket.send(b"Invalid choice. Disconnecting...\n")
         return None
