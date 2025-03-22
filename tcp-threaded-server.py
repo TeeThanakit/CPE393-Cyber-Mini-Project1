@@ -11,9 +11,10 @@ with open("config.json", "r") as file:
 
 SERV_IP_ADDR = config["SERVER_IP"]
 SERV_PORT = config["SERVER_PORT"]
-MAX_CLIENTS = 3
+MAX_CLIENTS = 2
 
 clients = {}
+client_public_keys = {}
 # keep every client info in dictionary
 # {<socket info>:"username"}
 clients_lock = Lock()
@@ -32,7 +33,6 @@ def load_users():
 
 def authenticate(client_socket):
     choice = client_socket.recv(1024).decode().strip()
-
     if choice == "1":  # Register
         register(client_socket, users)
     elif choice == "2":  # Login
@@ -43,16 +43,13 @@ def authenticate(client_socket):
 
 def broadcast(message, sender_socket):
     with clients_lock:
-        for client, uname in clients.items():
+        for client in clients:
+            # Skip sending the message back to the sender
             if client != sender_socket:
                 try:
-                    # Change the first char to uppercase เพื่อความสวยงาม
-                    if(message.decode()[0].islower()):
-                        message = fistCharToUpper(message)
-                    
-                    client.send(message)
+                    client.send(message)  # Send the message to the client
                 except:
-                    pass  # Ignore errors
+                    pass
 
 def handle_client(client_socket, addr):
     global clients
@@ -68,20 +65,40 @@ def handle_client(client_socket, addr):
 
     while True:
         try:
-            msg = client_socket.recv(1024)
-            if not msg or msg.decode().strip().lower() == "quit":
+            msg = client_socket.recv(2048)
+            if not msg:
                 break
+            # Handle public key message
+            if msg.startswith(b'PUBKEY:'):
+                key_data = msg[len(b'PUBKEY:'):]
+                client_public_keys[client_socket] = key_data
 
-            print(f"{username}: {msg.decode()}")
-            broadcast(f"{username}: {msg.decode()}".encode(), client_socket)
+                # Send existing clients' keys to the new one
+                with clients_lock:
+                    for other_client, pubkey in client_public_keys.items():
+                        if other_client != client_socket:
+                            try:
+                                client_socket.send(b'PUBKEY:' + pubkey)
+                            except:
+                                pass
 
-        except:
+                # Broadcast this new client's key to others
+                broadcast(b'PUBKEY:' + key_data, client_socket)
+                continue
+            
+
+            #print(f"{username}: {msg.decode()}")
+            broadcast(msg, client_socket)
+            # broadcast(f"{username}: {msg}", client_socket)
+
+
+        except: 
             break
 
     with clients_lock:
         del clients[client_socket]
-    client_socket.close()
-    print(f"{username} disconnected.")
+        client_socket.close()
+        print(f"{username} disconnected.")
 
 def main():
     load_users()
@@ -99,15 +116,22 @@ def main():
     print(f"Server started at {SERV_IP_ADDR}:{SERV_PORT}")
 
     while True:
-        client_socket, cli_addr = server_socket.accept()
+        conn_sckt, cli_addr = server_socket.accept()
 
         with clients_lock:
             if len(clients) >= MAX_CLIENTS:
-                client_socket.send(b"Server full. Try again later.\n")
-                client_socket.close()
+                conn_sckt.send(b"Server full. Try again later.\n")
+                conn_sckt.close()
                 continue
 
-        Thread(target=handle_client, args=(client_socket, cli_addr)).start()
+         # Start a new thread to handle this client's communication
+        try:
+            Thread(target=handle_client, args=(conn_sckt, cli_addr), daemon=True).start()
+        except:
+            print("Cannot start thread ..")
+            # Print the stack trace to understand what went wrong
+            import traceback
+            traceback.print_exc()
 
 if __name__ == '__main__':
     try:
