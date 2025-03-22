@@ -29,29 +29,40 @@ server_public_keys = {}
 # Maximum size (in bytes) for receiving messages
 MAX_BUF = 2048
 
+def encryptedKeyAndMessageForAuthentication(message):
+    if 'server' in server_public_keys:
+        server_pubkey = server_public_keys['server']
+        key = generate_aes_key()
+        encrypted_key = rsa_encrypt(server_pubkey, key)
+        encrypted_msg = aes_encrypt(key, message)
 
+        # Format: ENC_KEY + delimiter + ENC_MSG
+        return (b'ENC:' + encrypted_key + b'||' + encrypted_msg)
+    else:
+        return None
 
 def register():
-    cli_sock.send(b"1\n")
+    if (encryptedKeyAndMessageForAuthentication("1")):
+        cli_sock.send(encryptedKeyAndMessageForAuthentication("1"))
     print(cli_sock.recv(1024).decode(), end="")
     username = input()
-    cli_sock.send(username.encode() + b"\n")
+    cli_sock.send(encryptedKeyAndMessageForAuthentication(username))
 
     print(cli_sock.recv(1024).decode(), end="")
     password = input()
-    cli_sock.send(password.encode() + b"\n")
+    cli_sock.send(encryptedKeyAndMessageForAuthentication(password))
 
     print(cli_sock.recv(1024).decode())
 
 def login():
-    cli_sock.send(b"2\n")  # Send login option
+    cli_sock.send(encryptedKeyAndMessageForAuthentication("2"))  # Send login option
     print(cli_sock.recv(1024).decode(), end="")
     username = input()
-    cli_sock.send(username.encode() + b"\n")
+    cli_sock.send(encryptedKeyAndMessageForAuthentication(username))
 
     print(cli_sock.recv(1024).decode(), end="")
     password = input()
-    cli_sock.send(password.encode() + b"\n")
+    cli_sock.send(encryptedKeyAndMessageForAuthentication(password))
 
     response = cli_sock.recv(1024).decode()
     print(response)
