@@ -23,6 +23,8 @@ cli_sock = socket(AF_INET, SOCK_STREAM)
 
 # Other client public RSA key
 public_keys = {}
+# Server public RSA key (For Login&Register)
+server_public_keys = {}
 # Maximum size (in bytes) for receiving messages
 MAX_BUF = 2048
 
@@ -67,9 +69,17 @@ def receive_messages():
                 peer_key = msg[len(b'PUBKEY:'):]
                 peer_pub = load_public_key(peer_key)
                 public_keys['peer'] = peer_pub
-                print('\n[INFO] Received public key from another client.\n> ', end='', flush=True)
+                #print('\n[INFO] Received public key from another client.\n> ', end='', flush=True)
                 # You can store this key by some ID if the server sends one
                 continue
+            elif msg.startswith(b'SERVERPUBKEY:'):
+                # print(msg)
+                server_key = msg[len(b'SERVERPUBKEY:'):]
+                server_pub = load_public_key(server_key)
+                server_public_keys['server'] = server_pub
+                print('\n[INFO] Received public key from server.\n> ', end='', flush=True)
+                # You can store this key by some ID if the server sends one
+                break
             elif msg.startswith(b'ENC:'):
                 try:
                     payload = msg[len(b'ENC:'):]
@@ -88,8 +98,9 @@ def receive_messages():
 def makeConnection():
     cli_sock.connect(SERV_SOCK_ADDR)
     print("Connected to server.")
-    
-    #print('Sent Public RSA key to server')
+
+    recv_thread = threading.Thread(target=receive_messages, daemon=True)
+    recv_thread.start()
 
     while True:
         print("\n1: Register\n2: Login")
@@ -104,16 +115,21 @@ def makeConnection():
         else:
             print("Invalid choice. Try again.")
 
-    # print("Sent publioc key to server")
+    # print("Sent public key to server")
     cli_sock.send(b'PUBKEY:' + serialized_pubkey)
 
     # Start thread to receive messages
     recv_thread = threading.Thread(target=receive_messages, daemon=True)
     recv_thread.start()
+    
 
+    
+    
+    
+    
     while True:
         print('> ', end='', flush=True)       # Print prompt for user input
-        txtout = sys.stdin.readline().strip() # Read a line of user input (blocking)
+        txtout = username + sys.stdin.readline().strip() # Read a line of user input (blocking)
         if 'peer' in public_keys:
             peer_pubkey = public_keys['peer']
             key = generate_aes_key()

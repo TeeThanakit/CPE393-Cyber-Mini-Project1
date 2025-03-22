@@ -5,6 +5,17 @@ import platform
 import json
 from loginRegister import register, login
 from helper import fistCharToUpper
+# from crypto_utils import generate_aes_key, aes_encrypt, aes_decrypt, rsa_encrypt, rsa_decrypt
+
+
+from crypto_utils import (
+    generate_rsa_keypair,
+    serialize_public_key,
+    load_public_key
+)
+
+private_key, public_key = generate_rsa_keypair()
+serialized_pubkey = serialize_public_key(public_key)
 
 with open("config.json", "r") as file:
     config = json.load(file)
@@ -123,8 +134,10 @@ def main():
                 conn_sckt.send(b"Server full. Try again later.\n")
                 conn_sckt.close()
                 continue
+            conn_sckt.send(b'SERVERPUBKEY:' + serialized_pubkey)
+            #print("New connection")
 
-         # Start a new thread to handle this client's communication
+        # Start a new thread to handle this client's communication
         try:
             Thread(target=handle_client, args=(conn_sckt, cli_addr), daemon=True).start()
         except:
