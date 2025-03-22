@@ -2,17 +2,24 @@ from socket import *
 from threading import Thread, Lock
 import os, sys
 import platform
+import json
 
-SERV_IP_ADDR, SERV_PORT = '127.0.0.1', 50001
+with open("config.json", "r") as file:
+    config = json.load(file)
+
+SERV_IP_ADDR = config["SERVER_IP"]
+SERV_PORT = config["SERVER_PORT"]
+MAX_CLIENTS = 3
 
 clients = {}
+# keep every client info in dictionary
+# {<socket info>:"username"}
 clients_lock = Lock()
 
-MAX_CLIENTS = 3
 users = {}
-# {'1': 'tee', 'teeboy': 'zaza'}
+# keep username && password
+# {'Teeboy': 'pass', 'moji': '123'}
 
-# Load user credentials from a file
 USER_DB_FILE = "user_db.txt"
 
 def load_users():
@@ -22,19 +29,16 @@ def load_users():
             for line in file:
                 username, password = line.strip().split(",")
                 users[username] = password
-                # {'1': 'tee', 'teeboy': 'zaza'}
 
 def save_user(username, password):
+    # คิดว่าจะต้อง hash password ตรงนี้ เเล้วค่อยเก็บลง txt file
+    # อาจะลองgenerate key ที่จะใช้ encrypy && decrypt เเล้วเก็บไว้ใน config.json ก็ได้ ที่มันเป็น ciphertext ไม่รู้เวิคไหม
     with open(USER_DB_FILE, "a") as file:
         file.write(f"{username},{password}\n")
 
 def authenticate(client_socket):
-    # print(client_socket)
-    # print("Before input")
+    
     choice = client_socket.recv(1024).decode().strip()
-    # print("After input")
-    # print(client_socket)
-    # print(choice)
 
     if choice == "1":  # Register
         client_socket.send(b"Enter new username: ")
@@ -56,7 +60,7 @@ def authenticate(client_socket):
         username = client_socket.recv(1024).decode().strip()
         client_socket.send(b"Enter password: ")
         password = client_socket.recv(1024).decode().strip()
-
+        # คิดว่าตรงนี้จะต้อง เอารหัสที่ user input มา compare กับ hashed password ใน txt
         if username in users and users[username] == password:
             client_socket.send(b"Login successful. Welcome!\n")
             return username
@@ -68,11 +72,21 @@ def authenticate(client_socket):
         client_socket.send(b"Invalid choice. Disconnecting...\n")
         return None
 
+def fistCharToUpper(message):
+    decoded_message = message.decode('utf-8')
+    formatted_message = decoded_message[0].upper() + decoded_message[1:]
+    result = formatted_message.encode('utf-8')
+    return result
+
 def broadcast(message, sender_socket):
     with clients_lock:
         for client, uname in clients.items():
             if client != sender_socket:
                 try:
+                    # Change the first char to uppercase เพื่อความสวยงาม
+                    if(message.decode()[0].islower()):
+                        message = fistCharToUpper(message)
+                    
                     client.send(message)
                 except:
                     pass  # Ignore errors

@@ -1,9 +1,12 @@
 from socket import *
 import sys
 import threading
+import json
 
-SERV_IP_ADDR, SERV_PORT = '127.0.0.1', 50001
-SERV_SOCK_ADDR = (SERV_IP_ADDR, SERV_PORT)
+with open("config.json", "r") as file:
+    config = json.load(file)
+    
+SERV_SOCK_ADDR = (config["SERVER_IP"], config["SERVER_PORT"])
 cli_sock = socket(AF_INET, SOCK_STREAM)
 
 def register():
@@ -20,16 +23,16 @@ def register():
 
 def login():
     cli_sock.send(b"2\n")  # Send login option
-    print(cli_sock.recv(1024).decode(), end="")  # "Enter username: "
+    print(cli_sock.recv(1024).decode(), end="")
     username = input()
     cli_sock.send(username.encode() + b"\n")
 
-    print(cli_sock.recv(1024).decode(), end="")  # "Enter password: "
+    print(cli_sock.recv(1024).decode(), end="")
     password = input()
     cli_sock.send(password.encode() + b"\n")
 
     response = cli_sock.recv(1024).decode()
-    print("back from server", response)
+    print(response)
     if("Login successful" in response):
         return username
 
