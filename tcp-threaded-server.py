@@ -43,13 +43,28 @@ def load_users():
                 users[username] = password
 
 def authenticate(client_socket):
-    choice = client_socket.recv(1024).decode().strip()
-    if choice == "1":  # Register
-        register(client_socket, users)
-    elif choice == "2":  # Login
-        return login(client_socket, users)
+    choice = client_socket.recv(2048)
+
+    #Decrypt Message
+    if choice.startswith(b'ENC:'):
+        try:            
+            payload = choice[len(b'ENC:'):]
+            encrypted_key, encrypted_msg = payload.split(b'||')
+
+            aes_key = rsa_decrypt(private_key, encrypted_key)  # use own private key
+            plain_msg = aes_decrypt(aes_key, encrypted_msg)
+
+            print(f'{plain_msg}\n> ', end='', flush=True)
+        except Exception as e:
+            print(f'[ERROR] Failed to decrypt secure message: {e}')
+
+
+    if plain_msg == "1":  # Register
+        register(client_socket, users, private_key)
+    elif plain_msg == "2":  # Login
+        return login(client_socket, users, private_key)
     else:
-        client_socket.send(b"Invalid choice. Disconnecting...\n")
+        client_socket.send(b"Invalid choice: \n" + plain_msg)
         return None
 
 def broadcast(message, sender_socket):
@@ -108,6 +123,8 @@ def handle_client(client_socket, addr):
 
     with clients_lock:
         del clients[client_socket]
+        if client_socket in client_public_keys:
+            del client_public_keys[client_socket]
         client_socket.close()
         print(f"{username} disconnected.")
 
