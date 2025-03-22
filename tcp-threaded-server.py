@@ -47,12 +47,6 @@ def authenticate(client_socket):
         client_socket.send(b"Invalid choice. Disconnecting...\n")
         return None
 
-def fistCharToUpper(message):
-    decoded_message = message.decode('utf-8')
-    formatted_message = decoded_message[0].upper() + decoded_message[1:]
-    result = formatted_message.encode('utf-8')
-    return result
-
 def broadcast(message, sender_socket):
     with clients_lock:
         for client in clients:
