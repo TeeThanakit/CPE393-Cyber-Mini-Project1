@@ -2,36 +2,78 @@ from socket import *
 import sys
 import threading
 
-MAX_BUF = 2048
 SERV_IP_ADDR, SERV_PORT = '127.0.0.1', 50001
 SERV_SOCK_ADDR = (SERV_IP_ADDR, SERV_PORT)
-
 cli_sock = socket(AF_INET, SOCK_STREAM)
-cli_sock.connect(SERV_SOCK_ADDR)
-print('Connected to server ...')
 
-# Thread สำหรับรับข้อความจาก server
+def register():
+    cli_sock.send(b"1\n")
+    print(cli_sock.recv(1024).decode(), end="")
+    username = input()
+    cli_sock.send(username.encode() + b"\n")
+
+    print(cli_sock.recv(1024).decode(), end="")
+    password = input()
+    cli_sock.send(password.encode() + b"\n")
+
+    print(cli_sock.recv(1024).decode())
+
+def login():
+    cli_sock.send(b"2\n")  # Send login option
+    print(cli_sock.recv(1024).decode(), end="")  # "Enter username: "
+    username = input()
+    cli_sock.send(username.encode() + b"\n")
+
+    print(cli_sock.recv(1024).decode(), end="")  # "Enter password: "
+    password = input()
+    cli_sock.send(password.encode() + b"\n")
+
+    response = cli_sock.recv(1024).decode()
+    print("back from server", response)
+    if("Login successful" in response):
+        return username
+
 def receive_messages():
     while True:
         try:
-            msg = cli_sock.recv(MAX_BUF)
+            msg = cli_sock.recv(2048)
             if not msg:
                 print("Disconnected from server.")
                 break
-            print('\n' + msg.decode('utf-8') + '\n> ', end='', flush=True)
+            print(f"{msg.decode()}\n", end='', flush=True)
         except:
             break
 
-recv_thread = threading.Thread(target=receive_messages, daemon=True)
-recv_thread.start()
+def makeConnection():
+    cli_sock.connect(SERV_SOCK_ADDR)
+    print("Connected to server.")
 
-# Main loop สำหรับส่งข้อความ
-while True:
-    print('> ', end='', flush=True)
-    txtout = sys.stdin.readline().strip()
-    cli_sock.send(txtout.encode('utf-8'))
+    while True:
+        print("\n1: Register\n2: Login")
+        choice = input("Enter menu: ")
 
-    if txtout == 'quit':
-        break
+        if choice == "1":
+            register()
+        elif choice == "2":
+            username = login()
+            if (username):
+                break
+        else:
+            print("Invalid choice. Try again.")
 
-cli_sock.close()
+    # Start thread to receive messages
+    recv_thread = threading.Thread(target=receive_messages, daemon=True)
+    recv_thread.start()
+
+    while True:
+        msg = input()
+        # msg = input("> ")
+        cli_sock.send(msg.encode())
+
+        if msg.lower() == "quit":
+            break
+
+    cli_sock.close()
+
+if __name__ == '__main__':
+    makeConnection()

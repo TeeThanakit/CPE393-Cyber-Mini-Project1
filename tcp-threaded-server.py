@@ -1,92 +1,139 @@
-from socket import * 
+from socket import *
 from threading import Thread, Lock
 import os, sys
 import platform
 
 SERV_IP_ADDR, SERV_PORT = '127.0.0.1', 50001
 
-clients = []
+clients = {}
 clients_lock = Lock()
 
-MAX_CLIENTS = 2
+MAX_CLIENTS = 3
+users = {}
+# {'1': 'tee', 'teeboy': 'zaza'}
+
+# Load user credentials from a file
+USER_DB_FILE = "user_db.txt"
+
+def load_users():
+    global users
+    if os.path.exists(USER_DB_FILE):
+        with open(USER_DB_FILE, "r") as file:
+            for line in file:
+                username, password = line.strip().split(",")
+                users[username] = password
+                # {'1': 'tee', 'teeboy': 'zaza'}
+
+def save_user(username, password):
+    with open(USER_DB_FILE, "a") as file:
+        file.write(f"{username},{password}\n")
+
+def authenticate(client_socket):
+    # print(client_socket)
+    # print("Before input")
+    choice = client_socket.recv(1024).decode().strip()
+    # print("After input")
+    # print(client_socket)
+    # print(choice)
+
+    if choice == "1":  # Register
+        client_socket.send(b"Enter new username: ")
+        username = client_socket.recv(1024).decode().strip()
+        client_socket.send(b"Enter new password: ")
+        password = client_socket.recv(1024).decode().strip()
+
+        if username in users:
+            client_socket.send(b"Username already exists. Try again.\n")
+            return None
+        else:
+            users[username] = password
+            save_user(username, password)
+            client_socket.send(b"Registration successful. You can now login.\n")
+            return None
+
+    elif choice == "2":  # Login
+        client_socket.send(b"Enter username: ")
+        username = client_socket.recv(1024).decode().strip()
+        client_socket.send(b"Enter password: ")
+        password = client_socket.recv(1024).decode().strip()
+
+        if username in users and users[username] == password:
+            client_socket.send(b"Login successful. Welcome!\n")
+            return username
+        else:
+            client_socket.send(b"Invalid username or password. Try again.\n")
+            return None
+
+    else:
+        client_socket.send(b"Invalid choice. Disconnecting...\n")
+        return None
 
 def broadcast(message, sender_socket):
     with clients_lock:
-        for client in clients:
+        for client, uname in clients.items():
             if client != sender_socket:
                 try:
                     client.send(message)
                 except:
-                    pass  # If sending fails, just ignore for now
+                    pass  # Ignore errors
 
-def handle_client(s, addr):
+def handle_client(client_socket, addr):
     global clients
-    
+
+    username = None
+    while username is None:
+        username = authenticate(client_socket)
+
+    with clients_lock:
+        clients[client_socket] = username
+
+    print(f"{username} from {addr} joined the chat.")
+
     while True:
         try:
-            txtin = s.recv(1024)
-            if not txtin:
+            msg = client_socket.recv(1024)
+            if not msg or msg.decode().strip().lower() == "quit":
                 break
 
-            print(addr[0], ':', addr[1], '>', txtin.decode("utf-8"), sep='')
-
-            if txtin == b'quit':
-                break
-            else:
-                broadcast(txtin, s)
+            print(f"{username}: {msg.decode()}")
+            broadcast(f"{username}: {msg.decode()}".encode(), client_socket)
 
         except:
             break
 
     with clients_lock:
-        if s in clients:
-            clients.remove(s)
-        s.close()
-        print('Disconnect client ', addr[0], ':', addr[1], ' ...', sep='')
+        del clients[client_socket]
+    client_socket.close()
+    print(f"{username} disconnected.")
 
 def main():
-    SERV_SOCK_ADDR = (SERV_IP_ADDR, SERV_PORT) 
-    welcome_sckt = socket(AF_INET, SOCK_STREAM)
+    load_users()
+    
+    server_socket = socket(AF_INET, SOCK_STREAM)
 
     if any(platform.win32_ver()):
-        welcome_sckt.setsockopt(SOL_SOCKET, SO_EXCLUSIVEADDRUSE, 1)
+        server_socket.setsockopt(SOL_SOCKET, SO_EXCLUSIVEADDRUSE, 1)
     else:
-        welcome_sckt.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        server_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
 
-    welcome_sckt.bind(SERV_SOCK_ADDR)
-    welcome_sckt.listen(5)
+    server_socket.bind((SERV_IP_ADDR, SERV_PORT))
+    server_socket.listen(MAX_CLIENTS)
 
-    print ('TCP server started at ', SERV_IP_ADDR,":", SERV_PORT, ' ...', sep='')
+    print(f"Server started at {SERV_IP_ADDR}:{SERV_PORT}")
 
     while True:
-        conn_sckt, cli_addr = welcome_sckt.accept()
+        client_socket, cli_addr = server_socket.accept()
 
         with clients_lock:
             if len(clients) >= MAX_CLIENTS:
-                print("Connection refused from", cli_addr, "- server full")
-                conn_sckt.send(b"Server full. Try again later.\n")
-                conn_sckt.close()
+                client_socket.send(b"Server full. Try again later.\n")
+                client_socket.close()
                 continue
-            else:
-                clients.append(conn_sckt)
 
-        print ('New client connected from', cli_addr[0], ':', cli_addr[1], ' ...', sep='')
-
-        try:
-            Thread(target=handle_client, args=(conn_sckt, cli_addr)).start()
-        except:
-            print("Cannot start thread ..")
-            import traceback
-            traceback.print_exc()
-
-    welcome_sckt.close()
+        Thread(target=handle_client, args=(client_socket, cli_addr)).start()
 
 if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
-        print ('Interrupted ..')
-        try:
-            sys.exit(0)
-        except SystemExit:
-            os._exit(0)
+        print("Server shutting down...")
