@@ -9,6 +9,8 @@ def save_user(username, password):
     with open(config["USER_DB_FILE"], "a") as file:
         file.write(f"{username},{password}\n")
 
+# client_socket เก็บข้อมูลของ client src-des ip, protocol etc.
+# users เก็บข้อมูลที่อยู่ใน user_db.txt
 def register(client_socket, users):
     client_socket.send(b"Enter new username: ")
     username = client_socket.recv(1024).decode().strip()

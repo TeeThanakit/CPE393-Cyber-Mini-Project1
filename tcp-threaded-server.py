@@ -4,6 +4,7 @@ import os, sys
 import platform
 import json
 from loginRegister import register, login
+from helper import fistCharToUpper
 
 with open("config.json", "r") as file:
     config = json.load(file)
@@ -21,8 +22,6 @@ users = {}
 # keep username && password
 # {'Teeboy': 'pass', 'moji': '123'}
 
-
-
 def load_users():
     global users
     if os.path.exists(config["USER_DB_FILE"]):
@@ -31,27 +30,16 @@ def load_users():
                 username, password = line.strip().split(",")
                 users[username] = password
 
-
-
 def authenticate(client_socket):
-    
     choice = client_socket.recv(1024).decode().strip()
 
     if choice == "1":  # Register
         register(client_socket, users)
-
     elif choice == "2":  # Login
         return login(client_socket, users)
-
     else:
         client_socket.send(b"Invalid choice. Disconnecting...\n")
         return None
-
-def fistCharToUpper(message):
-    decoded_message = message.decode('utf-8')
-    formatted_message = decoded_message[0].upper() + decoded_message[1:]
-    result = formatted_message.encode('utf-8')
-    return result
 
 def broadcast(message, sender_socket):
     with clients_lock:
