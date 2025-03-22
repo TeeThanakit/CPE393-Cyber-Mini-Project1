@@ -1,6 +1,7 @@
 from socket import *
 import sys
 import threading
+from helper import fistCharToUpperClient
 import json
 from crypto_utils import generate_aes_key, aes_encrypt, aes_decrypt, rsa_encrypt, rsa_decrypt
 
@@ -77,7 +78,7 @@ def receive_messages():
                 server_key = msg[len(b'SERVERPUBKEY:'):]
                 server_pub = load_public_key(server_key)
                 server_public_keys['server'] = server_pub
-                print('\n[INFO] Received public key from server.\n> ', end='', flush=True)
+                # print('\n[INFO] Received public key from server.\n> ', end='', flush=True)
                 # You can store this key by some ID if the server sends one
                 break
             elif msg.startswith(b'ENC:'):
@@ -88,7 +89,7 @@ def receive_messages():
                     aes_key = rsa_decrypt(private_key, encrypted_key)  # use own private key
                     plain_msg = aes_decrypt(aes_key, encrypted_msg)
 
-                    print(f'[PEER] {plain_msg}\n> ', end='', flush=True)
+                    print(f'{plain_msg}\n> ', end='', flush=True)
                 except Exception as e:
                     print(f'[ERROR] Failed to decrypt secure message: {e}')
         except Exception as e:
@@ -122,14 +123,10 @@ def makeConnection():
     recv_thread = threading.Thread(target=receive_messages, daemon=True)
     recv_thread.start()
     
-
-    
-    
-    
-    
     while True:
         print('> ', end='', flush=True)       # Print prompt for user input
-        txtout = username + sys.stdin.readline().strip() # Read a line of user input (blocking)
+        username = fistCharToUpperClient(username)
+        txtout = username + ': ' + sys.stdin.readline().strip() # Read a line of user input (blocking)
         if 'peer' in public_keys:
             peer_pubkey = public_keys['peer']
             key = generate_aes_key()
