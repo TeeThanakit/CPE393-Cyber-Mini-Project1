@@ -6,3 +6,4 @@ love,1234
 test,testuser
 jay,123
 Jay,123
+admin,123
