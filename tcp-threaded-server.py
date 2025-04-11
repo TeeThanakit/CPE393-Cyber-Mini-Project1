@@ -54,7 +54,7 @@ def authenticate(client_socket):
             aes_key = rsa_decrypt(private_key, encrypted_key)  # use own private key
             plain_msg = aes_decrypt(aes_key, encrypted_msg)
 
-            print(f'{plain_msg}\n> ', end='', flush=True)
+            # print(f'{plain_msg}\n> ', end='', flush=True) 
         except Exception as e:
             print(f'[ERROR] Failed to decrypt secure message: {e}')
 
