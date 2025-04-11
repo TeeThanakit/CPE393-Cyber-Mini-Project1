@@ -4,10 +4,10 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding as rsa_paddin
 from cryptography.hazmat.backends import default_backend
 from os import urandom
 
-# === AES SYMMETRIC ENCRYPTION ===
+# === AES SECTION === Use for encrypt plain text
 
 def generate_aes_key(length=32):
-    """Generate a random AES key. Default is 256-bit (32 bytes)."""
+    # Generate a random 32 bytes AES key. 
     return urandom(length)
 
 def aes_encrypt(key, plaintext):
@@ -37,7 +37,7 @@ def aes_decrypt(key, ciphertext):
     return plaintext.decode()
 
 
-# === RSA ASYMMETRIC ENCRYPTION (For key exchange) ===
+# === RSA Section === To generate Private/Public Keys || Encrypt/Decrypt AES message
 
 def generate_rsa_keypair():
     """Generate RSA public and private key pair."""
@@ -50,7 +50,7 @@ def generate_rsa_keypair():
     return private_key, public_key
 
 def rsa_encrypt(public_key, message: bytes):
-    """Encrypt a message with a public RSA key."""
+    ###Encrypt a AES message with a public RSA key.###
     return public_key.encrypt(
         message,
         rsa_padding.OAEP(
@@ -61,7 +61,7 @@ def rsa_encrypt(public_key, message: bytes):
     )
 
 def rsa_decrypt(private_key, ciphertext: bytes):
-    """Decrypt RSA-encrypted message with private key."""
+    ###Decrypt RSA-encrypted message with private key. To get AES message
     return private_key.decrypt(
         ciphertext,
         rsa_padding.OAEP(
@@ -70,6 +70,8 @@ def rsa_decrypt(private_key, ciphertext: bytes):
             label=None
         )
     )
+
+### ไม่เข้าใจอะ ใครเข้าใจมา comment ต่อที
 
 def serialize_public_key(public_key):
     """Serialize public key to bytes for transmission."""
