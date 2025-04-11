@@ -2,13 +2,14 @@ import json
 import bcrypt
 from crypto_utils import aes_decrypt, rsa_decrypt
 
-# Load config
 with open("config.json", "r") as file:
     config = json.load(file)
 
-def save_user(username, hashed_password):
-    # Convert bytes to string if necessary
-    hashed_str = hashed_password.decode()
+def save_user(username, password):
+    # คิดว่าจะต้อง hash password ตรงนี้ เเล้วค่อยเก็บลง txt file
+    # อาจะลองgenerate key ที่จะใช้ encrypy && decrypt เเล้วเก็บไว้ใน config.json ก็ได้ ที่มันเป็น ciphertext ไม่รู้เวิคไหม
+    with open(config["USER_DB_FILE"], "a") as file:
+        file.write(f"{username},{password}\n")
 
     # Split hash into 3 roughly equal parts
     length = len(hashed_str)
@@ -46,7 +47,6 @@ def load_users():
 users = load_users()
 
 # Register function
-def register(client_socket, users):
 # client_socket เก็บข้อมูลของ client src-des ip, protocol etc.
 # users เก็บข้อมูลที่อยู่ใน user_db.txt
 def register(client_socket, users, private_key):
@@ -62,9 +62,8 @@ def register(client_socket, users, private_key):
         client_socket.send(b"Username already exists. Try again.\n")
         return None
     else:
-        hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
-        users[username] = hashed_password  # store hashed password in memory
-        save_user(username, hashed_password)
+        users[username] = password
+        save_user(username, password)
         client_socket.send(b"Registration successful. You can now login.\n")
         return None
     
