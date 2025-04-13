@@ -17,11 +17,10 @@ def register(client_socket, users, private_key):
     client_socket.send(b"Enter new username: ") # ส่ง Prompt ให้ กรอก username ไปยัง client_socket
     username = client_socket.recv(1024) # รอรับข้อความจาก client_socket
     username = decryptMessage(username, private_key) #ถอดรหัสข้อความ AES ที่ถูก encrypt ซ้อนมาด้วย publick key ของ server
-
-        uf.write(f"{username}\n")
-        p1f.write(f"{part1}\n")
-        p2f.write(f"{part2}\n")
-        p3f.write(f"{part3}\n")
+    uf.write(f"{username}\n")
+    p1f.write(f"{part1}\n")
+    p2f.write(f"{part2}\n")
+    p3f.write(f"{part3}\n")
 
 def load_users():
     users = {}
