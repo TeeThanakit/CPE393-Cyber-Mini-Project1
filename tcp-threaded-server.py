@@ -4,6 +4,17 @@ import os, sys
 import platform
 import json
 from loginRegister import register, login
+from crypto_utils import generate_aes_key, aes_encrypt, aes_decrypt, rsa_encrypt, rsa_decrypt
+
+
+from crypto_utils import (
+    generate_rsa_keypair,
+    serialize_public_key,
+    load_public_key
+)
+
+private_key, public_key = generate_rsa_keypair()
+serialized_pubkey = serialize_public_key(public_key)
 from helper import fistCharToUpper
 # from crypto_utils import generate_aes_key, aes_encrypt, aes_decrypt, rsa_encrypt, rsa_decrypt
 

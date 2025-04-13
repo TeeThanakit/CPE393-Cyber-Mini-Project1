@@ -11,17 +11,12 @@ def save_user(username, password):
     with open(config["USER_DB_FILE"], "a") as file:
         file.write(f"{username},{password}\n")
 
-    # Split hash into 3 roughly equal parts
-    length = len(hashed_str)
-    part1 = hashed_str[:length // 3]
-    part2 = hashed_str[length // 3: 2 * length // 3]
-    part3 = hashed_str[2 * length // 3:]
 
-    # Save each part into separate files
-    with open("usernames.txt", "a") as uf, \
-         open("part1.txt", "a") as p1f, \
-         open("part2.txt", "a") as p2f, \
-         open("part3.txt", "a") as p3f:
+#### ใช้สำหรับ register
+def register(client_socket, users, private_key):
+    client_socket.send(b"Enter new username: ") # ส่ง Prompt ให้ กรอก username ไปยัง client_socket
+    username = client_socket.recv(1024) # รอรับข้อความจาก client_socket
+    username = decryptMessage(username, private_key) #ถอดรหัสข้อความ AES ที่ถูก encrypt ซ้อนมาด้วย publick key ของ server
 
         uf.write(f"{username}\n")
         p1f.write(f"{part1}\n")
