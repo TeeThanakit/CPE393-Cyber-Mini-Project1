@@ -1,14 +1,15 @@
 from socket import *
 from threading import Thread, Lock
-import os, sys
+import os
 import platform
 import json
 from loginRegister import register, login
-from helper import fistCharToUpper
+from datetime import datetime
 
 with open("config.json", "r") as file:
     config = json.load(file)
 
+timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 SERV_IP_ADDR = config["SERVER_IP"]
 SERV_PORT = config["SERVER_PORT"]
 MAX_CLIENTS = 2
@@ -62,7 +63,10 @@ def handle_client(client_socket, addr):
         clients[client_socket] = username
 
     print(f"{username} from {addr} joined the chat.")
-
+    log_message = f"[{timestamp}] Username: {username} From IP {addr[0]} with Port {addr[1]} joined the chat.\n"
+    with open("log.txt", "a") as log_file:
+        log_file.write(log_message)
+            
     while True:
         try:
             msg = client_socket.recv(2048)
@@ -117,7 +121,12 @@ def main():
 
     while True:
         conn_sckt, cli_addr = server_socket.accept()
-
+        
+        ip, port = cli_addr
+        log_message = f"[{timestamp}] IP {ip} with Port {port} connected to server\n"
+        with open("log.txt", "a") as log_file:
+            log_file.write(log_message)
+            
         with clients_lock:
             if len(clients) >= MAX_CLIENTS:
                 conn_sckt.send(b"Server full. Try again later.\n")
