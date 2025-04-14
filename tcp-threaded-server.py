@@ -1,21 +1,14 @@
 from socket import *
 from threading import Thread, Lock
-import os, sys
+import os
 import platform
 import json
 from loginRegister import register, login
-from crypto_utils import generate_aes_key, aes_encrypt, aes_decrypt, rsa_encrypt, rsa_decrypt
-
-
-from crypto_utils import (
-    generate_rsa_keypair,
-    serialize_public_key,
-    load_public_key
-)
+from crypto_utils import  aes_decrypt, rsa_decrypt, generate_rsa_keypair, serialize_public_key
+from helper import get_current_timestamp
 
 private_key, public_key = generate_rsa_keypair()
 serialized_pubkey = serialize_public_key(public_key)
-from helper import fistCharToUpper
 
 with open("config.json", "r") as file:
     config = json.load(file)
@@ -100,7 +93,9 @@ def handle_client(client_socket, addr):
 
     ### ==== เมืื่อ user login เสร็จแล้ว ====
     print(f"{username} from {addr} joined the chat.") 
-    ### เพิ่มเก็บ log ตรงนี้ จะได้ว่า client connect/disconnect ตอนไหนบ้าง ทำให้รู้ traffic
+    log_message = f"[{get_current_timestamp()}] Username: {username} From IP {addr[0]} with Port {addr[1]} joined the chat.\n"
+    with open("log.txt", "a") as log_file:
+        log_file.write(log_message)
 
     ### ================================
 
@@ -143,6 +138,9 @@ def handle_client(client_socket, addr):
             del client_public_keys[client_socket]
         client_socket.close()
         print(f"{username} disconnected.")
+        log_message = f"[{get_current_timestamp()}] Username: {username} disconnected.\n"
+        with open("log.txt", "a") as log_file:
+            log_file.write(log_message)
 
 
 ### อ่านไฟล์ "user_db" แล้วเซฟเก็บไว้ใน global variable 
@@ -174,7 +172,11 @@ def main():
 
     while True:
         conn_sckt, cli_addr = server_socket.accept()
-
+        
+        log_message = f"[{get_current_timestamp()}] IP {cli_addr[0]} with Port {cli_addr[1]} connected to server\n"
+        with open("log.txt", "a") as log_file:
+            log_file.write(log_message)
+            
         with clients_lock:
             if len(clients) >= MAX_CLIENTS:
                 conn_sckt.send(b"Server full. Try again later.\n")
