@@ -71,8 +71,8 @@ def rsa_decrypt(private_key, ciphertext: bytes):
         )
     )
 
-### ไม่เข้าใจอะ ใครเข้าใจมา comment ต่อที
 
+### Convert PubKey obj to string
 def serialize_public_key(public_key):
     """Serialize public key to bytes for transmission."""
     return public_key.public_bytes(

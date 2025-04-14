@@ -3,14 +3,9 @@ import sys
 import threading
 from helper import fistCharToUpperClient
 import json
-from crypto_utils import generate_aes_key, aes_encrypt, aes_decrypt, rsa_encrypt, rsa_decrypt
-
-
-from crypto_utils import (
-    generate_rsa_keypair,
-    serialize_public_key,
-    load_public_key
-)
+from crypto_utils import (generate_aes_key, aes_encrypt, aes_decrypt,
+                          rsa_encrypt, rsa_decrypt, generate_rsa_keypair,
+                          serialize_public_key, load_public_key)
 
 private_key, public_key = generate_rsa_keypair()
 serialized_pubkey = serialize_public_key(public_key)
@@ -125,18 +120,23 @@ def makeConnection():
     #### ========================================================================= ###
 
     ### ลูปจนกว่าจะ login เสร็จ (ได้ return ค่า username สำเร็จ) 
-    while True:
-        print("\n1: Register\n2: Login")
-        choice = input("Enter menu: ")
+    try:
+        while True:
+            print("\n1: Register\n2: Login")
+            choice = input("Enter menu: ")
 
-        if choice == "1":
-            register() # ไปยัง function "register()"
-        elif choice == "2":
-            username = login() # ไปยัง function "login()" แล้วรับค่า return = username แล้วจึง break loop
-            if (username):
-                break ## ออกจาก while loop เมื่อได้รับต่า username แล้ว
-        else:
-            print("Invalid choice. Try again.")
+            if choice == "1":
+                register()  # ไปยัง function "register()"
+            elif choice == "2":
+                username = login()  # ไปยัง function "login()" แล้วรับค่า return = username แล้วจึง break loop
+            if username:
+                break  # ออกจาก while loop เมื่อได้รับค่า username แล้ว
+            else:
+                print("Invalid choice. Try again.")
+    except KeyboardInterrupt:
+        print("\nQuit")
+        cli_sock.close()
+        sys.exit(0)
 
     # ส่ง public key ของตัวเอง ไปให้ server เพื่อรอแลกเปลี่ยนกับ client2
     cli_sock.send(b'PUBKEY:' + serialized_pubkey)

@@ -151,6 +151,8 @@ def load_users():
             for line in file:
                 username, password = line.strip().split(",")
                 users[username] = password
+                # dictionary username is a key, password is value
+                #{'Teeboy': 'pass', 'moji': '123', 'jj': 'patty'}
 
 def main():
     ### อ่านไฟล์ user_db เพื่อ เก็บ username + password ไว้ใน global variable
