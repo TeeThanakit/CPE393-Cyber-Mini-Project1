@@ -120,23 +120,18 @@ def makeConnection():
     #### ========================================================================= ###
 
     ### ลูปจนกว่าจะ login เสร็จ (ได้ return ค่า username สำเร็จ) 
-    try:
-        while True:
-            print("\n1: Register\n2: Login")
-            choice = input("Enter menu: ")
+    while True:
+        print("\n1: Register\n2: Login")
+        choice = input("Enter menu: ")
 
-            if choice == "1":
-                register()  # ไปยัง function "register()"
-            elif choice == "2":
-                username = login()  # ไปยัง function "login()" แล้วรับค่า return = username แล้วจึง break loop
-            if username:
-                break  # ออกจาก while loop เมื่อได้รับค่า username แล้ว
-            else:
-                print("Invalid choice. Try again.")
-    except KeyboardInterrupt:
-        print("\nQuit")
-        cli_sock.close()
-        sys.exit(0)
+        if choice == "1":
+            register() # ไปยัง function "register()"
+        elif choice == "2":
+            username = login() # ไปยัง function "login()" แล้วรับค่า return = username แล้วจึง break loop
+            if (username):
+                break ## ออกจาก while loop เมื่อได้รับต่า username แล้ว
+        else:
+            print("Invalid choice. Try again.")
 
     # ส่ง public key ของตัวเอง ไปให้ server เพื่อรอแลกเปลี่ยนกับ client2
     cli_sock.send(b'PUBKEY:' + serialized_pubkey)
