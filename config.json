@@ -1,6 +1,0 @@
-{
-    "SERVER_IP": "127.0.0.1",
-    "SERVER_PORT": 50001,
-    "USER_DB_FILE": "user_db.txt"
-}
-  

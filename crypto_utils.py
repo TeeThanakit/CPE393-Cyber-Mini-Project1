@@ -3,6 +3,12 @@ from cryptography.hazmat.primitives import padding, serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding as rsa_padding
 from cryptography.hazmat.backends import default_backend
 from os import urandom
+import yaml
+
+with open("config.yaml", "r") as file:
+    config = yaml.safe_load(file)
+
+AES_ENCRYPTION_FLAG = config["AES_Encryption"]
 
 # === AES SECTION === Use for encrypt plain text
 
