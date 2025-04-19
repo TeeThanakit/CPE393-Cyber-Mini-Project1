@@ -47,6 +47,8 @@ def broadcast(message, sender_socket):
             # เช็คว่าไม่ใช่ sender
             if client != sender_socket:
                 try:
+                    # ใข้ดู message ที่ client คุยกันได้ ว่าเข้ารหัสมั้ย
+                    print(message)
                     # ส่งข้อตวามไปให้อีก client
                     client.send(message) 
                 except:
