@@ -195,4 +195,9 @@ def makeConnection():
 
 #### โค้ดจะอ่านอันนี้ก่อน ####
 if __name__ == '__main__':
-    makeConnection() # เริ่มด้วยการรัน function "makeConnection()"
+    try:
+        makeConnection() # เริ่มด้วยการรัน function "makeConnection()"
+    except KeyboardInterrupt:
+        print("\n[INFO] Disconnected by user (Ctrl+C)")
+        cli_sock.close()
+        sys.exit(0)

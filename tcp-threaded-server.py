@@ -63,30 +63,42 @@ def broadcast(message, sender_socket):
 
 ### ใช้แค่ตอน client login/register
 def authenticate(client_socket, auth_handler):
-    choice = client_socket.recv(2048) ### รับ choice ที่ user เลือก ( ควรจะได้รับมาเป็น AES message ที่ encrypt ซ้อนด้วย public key ของ server อีกที)
+    try:
+        choice = client_socket.recv(2048) ### รับ choice ที่ user เลือก ( ควรจะได้รับมาเป็น AES message ที่ encrypt ซ้อนด้วย public key ของ server อีกที)
+        if not choice:
+            print("[INFO] Client disconnected before sending any data.")
+            return "quit"
 
-    #### === Section การถอดรหัสข้อความ #### 
-    if choice.startswith(b'ENC:'):
-        try:            
-            payload = choice[len(b'ENC:'):]
-            encrypted_key, encrypted_msg = payload.split(b'||') ### แยกระหว่าง encrypted AES key กับ encrypted AES message 
+        plain_msg = None
 
-            aes_key = rsa_decrypt(private_key, encrypted_key) #ถอดรหัส encrypted AES key ด้วย private key ของ server (เพราะ client ส่งข้อความาเป็น AES key ที่ encrypted ซ้อนด้วย public key ของ server)
-            plain_msg = aes_decrypt(aes_key, encrypted_msg) #ถอดรหัส encrypted AES message ด้วย AES key ที่ถอดรหัสออกมาได้
+        #### === Section การถอดรหัสข้อความ #### 
+        if choice.startswith(b'ENC:'):
+            try:            
+                payload = choice[len(b'ENC:'):]
+                encrypted_key, encrypted_msg = payload.split(b'||') ### แยกระหว่าง encrypted AES key กับ encrypted AES message 
 
-        except Exception as e:
-            print(f'[ERROR] Failed to decrypt secure message: {e}')
+                aes_key = rsa_decrypt(private_key, encrypted_key) #ถอดรหัส encrypted AES key ด้วย private key ของ server (เพราะ client ส่งข้อความาเป็น AES key ที่ encrypted ซ้อนด้วย public key ของ server)
+                plain_msg = aes_decrypt(aes_key, encrypted_msg) #ถอดรหัส enc rypted AES message ด้วย AES key ที่ถอดรหัสออกมาได้
 
-    # เช็คดูว่า plain text เลือกช้อย 1 หรือ 2
-    ## หลังจากนี้จะเป็นการเรียก function จากไฟล์ "loginRegister.py" -> ให้ไปอ่านต่อในไฟล์นั้น
-    if plain_msg == "1":  # Register
-          auth_handler.register(client_socket)
-    elif plain_msg == "2":  # Login
-        return auth_handler.login(client_socket)
-    else:
-        client_socket.send(b"Invalid choice: \n" + plain_msg)
+            except Exception as e:
+                print(f'[ERROR] Failed to decrypt secure message: {e}')
+                return None
+        else:
+            print("[WARN] Received data not starting with ENC:, ignoring.")
+            return None
+
+        # เช็คดูว่า plain text เลือกช้อย 1 หรือ 2
+        ## หลังจากนี้จะเป็นการเรียก function จากไฟล์ "loginRegister.py" -> ให้ไปอ่านต่อในไฟล์นั้น
+        if plain_msg == "1":  # Register
+            auth_handler.register(client_socket)
+        elif plain_msg == "2":  # Login
+            return auth_handler.login(client_socket)
+        else:
+            client_socket.send(b"Invalid choice: \n" + plain_msg)
+            return None
+    except Exception as e:
+        print(f"[ERROR] Exception in authenticate(): {e}")
         return None
-
 
 
 #### จัดการ client แต่ละตัว ในนี้ ####
@@ -96,8 +108,10 @@ def handle_client(client_socket, addr):
     username = None ### เริ่มแรกยังไม่ login ให้ username = None
 
     while username is None:  ### ลูปรอใน function "authenticate()"
-       username = authenticate(client_socket, auth_handler)
-
+        username = authenticate(client_socket, auth_handler)
+        if username == "quit":
+            client_socket.close()
+            return None
     with clients_lock:
         clients[client_socket] = username
 
