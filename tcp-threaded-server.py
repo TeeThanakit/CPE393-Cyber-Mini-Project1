@@ -3,10 +3,14 @@ from threading import Thread, Lock
 import os
 import platform
 import json
-from loginRegister import register, login
+import sqlite3
+import bcrypt 
+from loginRegister import AuthHandler
 from crypto_utils import  aes_decrypt, rsa_decrypt, generate_rsa_keypair, serialize_public_key
 from helper import setup_logging
 import logging
+from database import Database 
+from loginRegister import AuthHandler
 
 setup_logging()
 
@@ -28,7 +32,7 @@ client_public_keys = {} # เก็บ public key ของ client ไว้แ�
 # keep every client info in dictionary
 # {<socket info>:"username"}
 clients_lock = Lock()
-
+db = Database() #เพื่อที่จะให้ interact กับ sqlite db
 users = {} # เก็บ user_db ที่ read มา ตั้งแต่แรก ## ควรแก้ (อ่านต่อใน function "main")
 # keep username && password
 # {'Teeboy': 'pass', 'moji': '123'}
@@ -58,7 +62,7 @@ def broadcast(message, sender_socket):
                     pass
 
 ### ใช้แค่ตอน client login/register
-def authenticate(client_socket):
+def authenticate(client_socket, auth_handler):
     choice = client_socket.recv(2048) ### รับ choice ที่ user เลือก ( ควรจะได้รับมาเป็น AES message ที่ encrypt ซ้อนด้วย public key ของ server อีกที)
 
     #### === Section การถอดรหัสข้อความ #### 
@@ -76,9 +80,9 @@ def authenticate(client_socket):
     # เช็คดูว่า plain text เลือกช้อย 1 หรือ 2
     ## หลังจากนี้จะเป็นการเรียก function จากไฟล์ "loginRegister.py" -> ให้ไปอ่านต่อในไฟล์นั้น
     if plain_msg == "1":  # Register
-        register(client_socket, users, private_key) 
+          auth_handler.register(client_socket)
     elif plain_msg == "2":  # Login
-        return login(client_socket, users, private_key)
+        return auth_handler.login(client_socket)
     else:
         client_socket.send(b"Invalid choice: \n" + plain_msg)
         return None
@@ -88,11 +92,11 @@ def authenticate(client_socket):
 #### จัดการ client แต่ละตัว ในนี้ ####
 def handle_client(client_socket, addr):
     global clients
-
+    auth_handler = AuthHandler(private_key)
     username = None ### เริ่มแรกยังไม่ login ให้ username = None
 
     while username is None:  ### ลูปรอใน function "authenticate()"
-        username = authenticate(client_socket)
+       username = authenticate(client_socket, auth_handler)
 
     with clients_lock:
         clients[client_socket] = username
@@ -148,13 +152,8 @@ def handle_client(client_socket, addr):
 ### อ่านไฟล์ "user_db" แล้วเซฟเก็บไว้ใน global variable 
 def load_users():
     global users
-    if os.path.exists(config["USER_DB_FILE"]):
-        with open(config["USER_DB_FILE"], "r") as file:
-            for line in file:
-                username, password = line.strip().split(",")
-                users[username] = password
-                # dictionary username is a key, password is value
-                #{'Teeboy': 'pass', 'moji': '123', 'jj': 'patty'}
+    users = db.get_all_users()
+
 
 def main():
     ### อ่านไฟล์ user_db เพื่อ เก็บ username + password ไว้ใน global variable
