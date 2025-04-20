@@ -109,8 +109,11 @@ def receive_messages():
                     encrypted_key, encrypted_msg = payload.split(b'||') # แยกส่วนระหว่าง Encrypt Aes Key กับ Encryp Aes Message
                     config = load_config()
                     if config["RSA_Encryption"]:
-                        aes_key = rsa_decrypt(private_key, encrypted_key)  # ใช้ private key ของตัวเอง เพื่อถอดรหัสเอา AES KEY ที่อีก client นึงสร้างไว้
-                        plain_msg = aes_decrypt(aes_key, encrypted_msg) # ใช้ AES Key ที่อีก client สร้างไว้ เพื่อถอดรหัสหาข้อความ plain text
+                        if config["AES_Encryption"]:
+                            aes_key = rsa_decrypt(private_key, encrypted_key)  # ใช้ private key ของตัวเอง เพื่อถอดรหัสเอา AES KEY ที่อีก client นึงสร้างไว้
+                            plain_msg = aes_decrypt(aes_key, encrypted_msg) # ใช้ AES Key ที่อีก client สร้างไว้ เพื่อถอดรหัสหาข้อความ plain text
+                        else:
+                            plain_msg = encrypted_msg.decode()
                     else:
                         if config["AES_Encryption"]:
                             plain_msg = aes_decrypt(encrypted_key, encrypted_msg)
