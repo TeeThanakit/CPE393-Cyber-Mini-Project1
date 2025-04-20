@@ -12,6 +12,7 @@ import logging
 from database import Database 
 from loginRegister import AuthHandler
 
+
 setup_logging()
 
 private_key, public_key = generate_rsa_keypair()
@@ -92,7 +93,11 @@ def authenticate(client_socket, auth_handler):
         if plain_msg == "1":  # Register
             auth_handler.register(client_socket)
         elif plain_msg == "2":  # Login
-            return auth_handler.login(client_socket)
+            result = auth_handler.login(client_socket)
+            if result == 20:
+                return None
+            else:
+                return result
         else:
             client_socket.send(b"Invalid choice: \n" + plain_msg)
             return None

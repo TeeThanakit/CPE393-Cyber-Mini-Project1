@@ -178,7 +178,7 @@ def makeConnection():
                 else: 
                     cli_sock.send(b'ENC:NONE' + b'||' + encrypted_msg)
             else:
-                print("[ERROR] No peer public key available.")
+                print("[ERROR] No peer public key available.\n")
         else:
             key = generate_aes_key() #สร้าง AES key เพื่อเข้ารหัส ข้อความ
             encrypted_msg = aes_encrypt(key, txtout) #เข้ารหัสข้อความด้วย AES key

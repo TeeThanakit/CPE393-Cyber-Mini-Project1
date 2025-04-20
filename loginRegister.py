@@ -3,6 +3,7 @@ import bcrypt
 from database import Database 
 from crypto_utils import aes_decrypt, rsa_decrypt
 
+
 with open("config.json", "r") as file:
     config = json.load(file)
 
@@ -32,7 +33,13 @@ class AuthHandler:
         print(f"User found in DB: {user}")  # ดูว่าผลลัพธ์จากฐานข้อมูลเป็นอะไร
         if not username or not password:
                 raise ValueError("Username or password is missing.") # ถ้าไม่ได้กรอก username หรือ password ให้แจ้งเตือน
-
+        # Password validation
+        if len(password) < 8 or len(password) > 22:
+            client_socket.send(b"Password must be between 8-22 characters. Try again.\n")
+            return
+        elif not password.isalnum():
+            client_socket.send(b"Password should not contain special characters. Try again.\n")
+            return
         if user:
             client_socket.send(b"Username already exists. Try again.\n")  # ถ้ามีผู้ใช้อยู่แล้ว ให้แจ้งเตือน
         else:
@@ -58,7 +65,7 @@ class AuthHandler:
             return username
         else:
             client_socket.send(b"Invalid username or password. Try again.\n")
-            return None
+            return 20
     
 
 ### ใช้ถอดรหัสข้อความ จาก client ที่ส่งมาเป็น -> SERVER_Public_Key(Client_AES_Key(ข้อความจริงๆ))
