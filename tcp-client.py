@@ -153,7 +153,8 @@ def makeConnection():
             cli_sock.send(b'ENC:' + encrypted_key + b'||' + encrypted_msg) #ส่งข้อความไปยัง server || Encrypt AES key + Encrpy AES message (การจะถอดรหัสข้อความได้จำเป็นต้อง ถอดรหัส AES KEY ด้วย Private Key ของอีก client ก่อน)
         else:
             print("[ERROR] No peer public key available.")
-
+            
+        # If the user types 'quit', break the loop and disconnect
         if txtout ==  username + ': ' + 'QUIT':
             break
     cli_sock.close()
