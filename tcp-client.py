@@ -3,6 +3,7 @@ import sys
 import threading
 from helper import fistCharToUpperClient
 import json
+import logging
 from crypto_utils import (generate_aes_key, aes_encrypt, aes_decrypt,
                           rsa_encrypt, rsa_decrypt, generate_rsa_keypair,
                           serialize_public_key, load_public_key)
@@ -31,6 +32,15 @@ MAX_BUF = 2048
 ######### เวลาอ่านโค้ด python อ่านจาก ล่าง -> บน จ้า จะเข้าใจง่ายกว่า ########
 ######### เวลาอ่านโค้ด python อ่านจาก ล่าง -> บน จ้า จะเข้าใจง่ายกว่า ########
 
+### ใช้โหลด config เพื่อ update แบบ realtime ### ความจริงตอน production ไม่จำเป็น
+def load_config():
+    try:
+        with open("config.json", "r") as file:
+            return json.load(file)
+    except Exception as e:
+        logging.error(f"Error loading config: {e}")
+        # Return default values if config can't be loaded
+        return {"AES_Encryption": True, "RSA_Encryption": True}
 
 ### ใช้เข้ารหัสข้อความ choice, username, password ที่จะส่งไปให้ server ตอน login/register เท่านั้น!!
 def encryptedKeyAndMessageForAuthentication(message):
@@ -97,9 +107,15 @@ def receive_messages():
                 try:
                     payload = msg[len(b'ENC:'):]
                     encrypted_key, encrypted_msg = payload.split(b'||') # แยกส่วนระหว่าง Encrypt Aes Key กับ Encryp Aes Message
-
-                    aes_key = rsa_decrypt(private_key, encrypted_key)  # ใช้ private key ของตัวเอง เพื่อถอดรหัสเอา AES KEY ที่อีก client นึงสร้างไว้
-                    plain_msg = aes_decrypt(aes_key, encrypted_msg) # ใช้ AES Key ที่อีก client สร้างไว้ เพื่อถอดรหัสหาข้อความ plain text
+                    config = load_config()
+                    if config["RSA_Encryption"]:
+                        aes_key = rsa_decrypt(private_key, encrypted_key)  # ใช้ private key ของตัวเอง เพื่อถอดรหัสเอา AES KEY ที่อีก client นึงสร้างไว้
+                        plain_msg = aes_decrypt(aes_key, encrypted_msg) # ใช้ AES Key ที่อีก client สร้างไว้ เพื่อถอดรหัสหาข้อความ plain text
+                    else:
+                        if config["AES_Encryption"]:
+                            plain_msg = aes_decrypt(encrypted_key, encrypted_msg)
+                        else:
+                            plain_msg = encrypted_msg
 
                     print(f'{plain_msg}\n> ', end='', flush=True) #output plainttext ไปที่ console
                 except Exception as e:
@@ -134,7 +150,9 @@ def makeConnection():
             print("Invalid choice. Try again.")
 
     # ส่ง public key ของตัวเอง ไปให้ server เพื่อรอแลกเปลี่ยนกับ client2
-    cli_sock.send(b'PUBKEY:' + serialized_pubkey)
+    config = load_config()
+    if config["RSA_Encryption"]:
+        cli_sock.send(b'PUBKEY:' + serialized_pubkey)
 
     #### สร้างเทรดใหม่... เทรดนี้ใช้สำหรับเวลาแชทปกติ #### เทรดนี้จะอยู่ตลอดเพื่อรอรับข้อความแชทที่ส่งผ่าน server
     recv_thread = threading.Thread(target=receive_messages, daemon=True)
@@ -144,16 +162,29 @@ def makeConnection():
         print('> ', end='', flush=True)  # พร้อมพ์รอให้ user input
         username = fistCharToUpperClient(username)
         txtout = username + ': ' + sys.stdin.readline().strip() # กำหนดให้ข้อความที่จะส่ง = username + : + ข้อความ
-        if 'peer' in public_keys:   # เช็คว่าได้รับ public key ของอีก client มาแล้วหรือยัง
-            peer_pubkey = public_keys['peer'] 
-            key = generate_aes_key() #สร้าง AES key เพื่อเข้ารหัส ข้อความ
-            encrypted_key = rsa_encrypt(peer_pubkey, key) #เข้ารหัส AES key ด้วย public key ของอีก client
-            encrypted_msg = aes_encrypt(key, txtout) #เข้ารหัสข้อความด้วย AES key
-
-            cli_sock.send(b'ENC:' + encrypted_key + b'||' + encrypted_msg) #ส่งข้อความไปยัง server || Encrypt AES key + Encrpy AES message (การจะถอดรหัสข้อความได้จำเป็นต้อง ถอดรหัส AES KEY ด้วย Private Key ของอีก client ก่อน)
+        config = load_config()
+        if config["RSA_Encryption"]:
+            if 'peer' in public_keys:   # เช็คว่าได้รับ public key ของอีก client มาแล้วหรือยัง
+                peer_pubkey = public_keys['peer'] 
+                key = generate_aes_key() #สร้าง AES key เพื่อเข้ารหัส ข้อความ
+                encrypted_key = rsa_encrypt(peer_pubkey, key) #เข้ารหัส AES key ด้วย public key ของอีก client
+                encrypted_msg = aes_encrypt(key, txtout) #เข้ารหัสข้อความด้วย AES key
+                
+                if config["AES_Encryption"]:
+                    cli_sock.send(b'ENC:' + encrypted_key + b'||' + encrypted_msg) #ส่งข้อความไปยัง server || Encrypt AES key + Encrpy AES message (การจะถอดรหัสข้อความได้จำเป็นต้อง ถอดรหัส AES KEY ด้วย Private Key ของอีก client ก่อน)
+                else: 
+                    cli_sock.send(b'ENC:' + "NONE" + b'||' + encrypted_msg)
+            else:
+                print("[ERROR] No peer public key available.")
         else:
-            print("[ERROR] No peer public key available.")
-            
+            key = generate_aes_key() #สร้าง AES key เพื่อเข้ารหัส ข้อความ
+            encrypted_msg = aes_encrypt(key, txtout) #เข้ารหัสข้อความด้วย AES key
+            if config["AES_Encryption"]:
+                cli_sock.send(b'ENC:' + key + b'||' + encrypted_msg) #ส่งข้อความไปยัง server || Encrypt AES key + Encrpy AES message (การจะถอดรหัสข้อความได้จำเป็นต้อง ถอดรหัส AES KEY ด้วย Private Key ของอีก client ก่อน)
+            else:
+                cli_sock.send(b'ENC:NONE' + b'||' + encrypted_msg)
+
+
         # If the user types 'quit', break the loop and disconnect
         if txtout ==  username + ': ' + 'QUIT':
             break

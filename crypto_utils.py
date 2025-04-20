@@ -3,7 +3,18 @@ from cryptography.hazmat.primitives import padding, serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding as rsa_padding
 from cryptography.hazmat.backends import default_backend
 from os import urandom
+import json
+import logging
 
+### ใช้โหลด config เพื่อ update แบบ realtime ### ความจริงตอน production ไม่จำเป็น
+def load_config():
+    try:
+        with open("config.json", "r") as file:
+            return json.load(file)
+    except Exception as e:
+        logging.error(f"Error loading config: {e}")
+        # Return default values if config can't be loaded
+        return {"AES_Encryption": True, "RSA_Encryption": True}
 # === AES SECTION === Use for encrypt plain text
 
 def generate_aes_key(length=32):
@@ -11,30 +22,46 @@ def generate_aes_key(length=32):
     return urandom(length)
 
 def aes_encrypt(key, plaintext):
-    """Encrypt plaintext using AES-CBC with random IV."""
-    iv = urandom(16)
-    padder = padding.PKCS7(128).padder()
-    padded_data = padder.update(plaintext.encode()) + padder.finalize()
 
-    cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
-    encryptor = cipher.encryptor()
-    ciphertext = encryptor.update(padded_data) + encryptor.finalize()
+    # ถ้าอยากได้ config update โดยไม่ต้องรี server เพื่อเทส ให้ uncomment
+    config = load_config()
 
-    return iv + ciphertext  # prepend IV for use in decryption
+
+    if config["AES_Encryption"]:
+        ## Encrypt plaintext using AES-CBC with random IV. ##
+        
+        iv = urandom(16)
+        padder = padding.PKCS7(128).padder()
+        padded_data = padder.update(plaintext.encode()) + padder.finalize()
+
+        cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
+        encryptor = cipher.encryptor()
+        ciphertext = encryptor.update(padded_data) + encryptor.finalize()
+
+        return iv + ciphertext  # prepend IV for use in decryption
+    else:
+        return plaintext.encode()
 
 def aes_decrypt(key, ciphertext):
-    """Decrypt AES-CBC encrypted ciphertext (expects IV at start)."""
-    iv = ciphertext[:16]
-    actual_cipher = ciphertext[16:]
 
-    cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
-    decryptor = cipher.decryptor()
-    padded_plaintext = decryptor.update(actual_cipher) + decryptor.finalize()
+    # ถ้าอยากได้ config update โดยไม่ต้องรี server เพื่อเทส ให้ uncomment
+    config = load_config()
 
-    unpadder = padding.PKCS7(128).unpadder()
-    plaintext = unpadder.update(padded_plaintext) + unpadder.finalize()
+    if config["AES_Encryption"]:
+        ##Decrypt AES-CBC encrypted ciphertext (expects IV at start).##
+        iv = ciphertext[:16]
+        actual_cipher = ciphertext[16:]
 
-    return plaintext.decode()
+        cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
+        decryptor = cipher.decryptor()
+        padded_plaintext = decryptor.update(actual_cipher) + decryptor.finalize()
+
+        unpadder = padding.PKCS7(128).unpadder()
+        plaintext = unpadder.update(padded_plaintext) + unpadder.finalize()
+
+        return plaintext.decode()
+    else:
+        return ciphertext.decode()
 
 
 # === RSA Section === To generate Private/Public Keys || Encrypt/Decrypt AES message
@@ -48,6 +75,7 @@ def generate_rsa_keypair():
     )
     public_key = private_key.public_key()
     return private_key, public_key
+    
 
 def rsa_encrypt(public_key, message: bytes):
     ###Encrypt a AES message with a public RSA key.###
