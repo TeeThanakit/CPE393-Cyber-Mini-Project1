@@ -1,8 +1,8 @@
-import yaml
+import json
 from crypto_utils import aes_decrypt, rsa_decrypt
 
-with open("config.yaml", "r") as file:
-    config = yaml.safe_load(file)
+with open("config.json", "r") as file:
+    config = json.load(file)
 
 #### ใช้ เซฟข้อมูล user ลงใน database ตอน register
 def save_user(username, password):

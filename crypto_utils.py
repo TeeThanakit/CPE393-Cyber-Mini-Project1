@@ -3,12 +3,18 @@ from cryptography.hazmat.primitives import padding, serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding as rsa_padding
 from cryptography.hazmat.backends import default_backend
 from os import urandom
-import yaml
+import json
+import logging
 
-with open("config.yaml", "r") as file:
-    config = yaml.safe_load(file)
-
-
+### ใช้โหลด config เพื่อ update แบบ realtime ### ความจริงตอน production ไม่จำเป็น
+def load_config():
+    try:
+        with open("config.json", "r") as file:
+            return json.load(file)
+    except Exception as e:
+        logging.error(f"Error loading config: {e}")
+        # Return default values if config can't be loaded
+        return {"AES_Encryption": True, "RSA_Encryption": True}
 # === AES SECTION === Use for encrypt plain text
 
 def generate_aes_key(length=32):
@@ -18,8 +24,7 @@ def generate_aes_key(length=32):
 def aes_encrypt(key, plaintext):
 
     # ถ้าอยากได้ config update โดยไม่ต้องรี server เพื่อเทส ให้ uncomment
-    with open("config.yaml", "r") as file:
-        config = yaml.safe_load(file)
+    config = load_config()
 
 
     if config["AES_Encryption"]:
@@ -40,8 +45,7 @@ def aes_encrypt(key, plaintext):
 def aes_decrypt(key, ciphertext):
 
     # ถ้าอยากได้ config update โดยไม่ต้องรี server เพื่อเทส ให้ uncomment
-    with open("config.yaml", "r") as file:
-        config = yaml.safe_load(file)
+    config = load_config()
 
     if config["AES_Encryption"]:
         ##Decrypt AES-CBC encrypted ciphertext (expects IV at start).##

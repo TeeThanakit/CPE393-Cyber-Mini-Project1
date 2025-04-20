@@ -89,3 +89,18 @@
 [2025-04-19 13:36:35] Username: moji From IP 127.0.0.1 with Port 57551 joined the chat.
 [2025-04-19 13:36:37] Username: moji disconnected.
 [2025-04-19 13:37:10] Username: jay disconnected.
+[2025-04-20 19:34:46] IP 127.0.0.1 with Port 59997 connected to server
+[2025-04-20 19:38:00] IP 127.0.0.1 with Port 60011 connected to server
+[2025-04-20 19:38:41] IP 127.0.0.1 with Port 60021 connected to server
+[2025-04-20 19:44:14] IP 127.0.0.1 with Port 60091 connected to server
+[2025-04-20 19:44:18] Username: jay From IP 127.0.0.1 with Port 60091 joined the chat.
+[2025-04-20 19:44:33] IP 127.0.0.1 with Port 60094 connected to server
+[2025-04-20 19:44:35] Username: moji From IP 127.0.0.1 with Port 60094 joined the chat.
+[2025-04-20 19:46:41] Username: moji disconnected.
+[2025-04-20 19:46:42] Username: jay disconnected.
+[2025-04-20 19:46:43] IP 127.0.0.1 with Port 60101 connected to server
+[2025-04-20 19:46:47] Username: moji From IP 127.0.0.1 with Port 60101 joined the chat.
+[2025-04-20 19:46:50] IP 127.0.0.1 with Port 60103 connected to server
+[2025-04-20 19:46:53] Username: jay From IP 127.0.0.1 with Port 60103 joined the chat.
+[2025-04-20 19:47:13] Username: jay disconnected.
+[2025-04-20 19:47:14] Username: moji disconnected.

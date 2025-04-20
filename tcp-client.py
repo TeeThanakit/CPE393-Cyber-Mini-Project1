@@ -2,7 +2,8 @@ from socket import *
 import sys
 import threading
 from helper import fistCharToUpperClient
-import yaml
+import json
+import logging
 from crypto_utils import (generate_aes_key, aes_encrypt, aes_decrypt,
                           rsa_encrypt, rsa_decrypt, generate_rsa_keypair,
                           serialize_public_key, load_public_key)
@@ -10,8 +11,8 @@ from crypto_utils import (generate_aes_key, aes_encrypt, aes_decrypt,
 private_key, public_key = generate_rsa_keypair()
 serialized_pubkey = serialize_public_key(public_key)
 
-with open("config.yaml", "r") as file:
-    config = yaml.safe_load(file)
+with open("config.json", "r") as file:
+    config = json.load(file)
     
 SERV_SOCK_ADDR = (config["SERVER_IP"], config["SERVER_PORT"])
 cli_sock = socket(AF_INET, SOCK_STREAM)
@@ -34,12 +35,12 @@ MAX_BUF = 2048
 ### ใช้โหลด config เพื่อ update แบบ realtime ### ความจริงตอน production ไม่จำเป็น
 def load_config():
     try:
-        with open("config.yaml", "r") as file:
-            return yaml.safe_load(file)
+        with open("config.json", "r") as file:
+            return json.load(file)
     except Exception as e:
         logging.error(f"Error loading config: {e}")
         # Return default values if config can't be loaded
-        return {"AES_Encryption": True}, {"RSA_Encryption": True}
+        return {"AES_Encryption": True, "RSA_Encryption": True}
 
 ### ใช้เข้ารหัสข้อความ choice, username, password ที่จะส่งไปให้ server ตอน login/register เท่านั้น!!
 def encryptedKeyAndMessageForAuthentication(message):

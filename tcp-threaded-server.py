@@ -2,7 +2,7 @@ from socket import *
 from threading import Thread, Lock
 import os
 import platform
-import yaml
+import json
 from loginRegister import register, login
 from crypto_utils import  aes_decrypt, rsa_decrypt, generate_rsa_keypair, serialize_public_key
 from helper import get_current_timestamp
@@ -11,8 +11,8 @@ private_key, public_key = generate_rsa_keypair()
 serialized_pubkey = serialize_public_key(public_key)
 
 
-with open("config.yaml", "r") as file:
-    config = yaml.safe_load(file)
+with open("config.json", "r") as file:
+    config = json.load(file)
 
 SERV_IP_ADDR = config["SERVER_IP"]
 SERV_PORT = config["SERVER_PORT"]
