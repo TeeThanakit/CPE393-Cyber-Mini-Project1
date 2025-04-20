@@ -173,7 +173,7 @@ def makeConnection():
                 if config["AES_Encryption"]:
                     cli_sock.send(b'ENC:' + encrypted_key + b'||' + encrypted_msg) #ส่งข้อความไปยัง server || Encrypt AES key + Encrpy AES message (การจะถอดรหัสข้อความได้จำเป็นต้อง ถอดรหัส AES KEY ด้วย Private Key ของอีก client ก่อน)
                 else: 
-                    cli_sock.send(b'ENC:' + "NONE" + b'||' + encrypted_msg)
+                    cli_sock.send(b'ENC:NONE' + b'||' + encrypted_msg)
             else:
                 print("[ERROR] No peer public key available.")
         else:
