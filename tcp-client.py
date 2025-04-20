@@ -154,8 +154,7 @@ def makeConnection():
         else:
             print("[ERROR] No peer public key available.")
 
-        # If the user types 'quit', break the loop and disconnect
-        if txtout == 'quit':
+        if txtout ==  username + ': ' + 'QUIT':
             break
     cli_sock.close()
 
