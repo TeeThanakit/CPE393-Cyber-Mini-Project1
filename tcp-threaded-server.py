@@ -55,17 +55,21 @@ users = {} # เก็บ user_db ที่ read มา ตั้งแต่แ
 ######### เวลาอ่านโค้ด python อ่านจาก ล่าง -> บน จ้า จะเข้าใจง่ายกว่า ########
 
 
-
+count = 1
 #### ใช้ broadcast ข้อความ ไปยัง client ทั้งหมดที่ connect อยู่ ยกเว้นตัวเอง (sender_socket)
 #### ในกรณีของเรา ที่มี connection ได้เพียง 2 client ไม่จำเป็น!!!!! #### ควรแก้ให้ส่งไปอีก client ตรงๆ และลบ function นี้ออก
 def broadcast(message, sender_socket):
+    global count
     with clients_lock:
         for client in clients: # ลูป clients{}
             # เช็คว่าไม่ใช่ sender
             if client != sender_socket:
                 try:
                     # ใข้ดู message ที่ client คุยกันได้ ว่าเข้ารหัสมั้ย
-                    print(message)
+                    if not message.startswith(b'PUBKEY:'):
+                        print("\n=",{count}, "================\n")
+                        print(message)
+                        count += 1
                     # ส่งข้อตวามไปให้อีก client
                     client.send(message) 
                 except:

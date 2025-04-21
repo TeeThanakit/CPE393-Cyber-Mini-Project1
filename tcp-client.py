@@ -3,6 +3,7 @@ import sys
 import threading
 from helper import fistCharToUpperClient
 import json
+import pwinput
 import logging
 from crypto_utils import (generate_aes_key, aes_encrypt, aes_decrypt,
                           rsa_encrypt, rsa_decrypt, generate_rsa_keypair,
@@ -76,7 +77,7 @@ def login():
     cli_sock.send(encryptedKeyAndMessageForAuthentication(username)) # ส่ง encrypt message (username) ไปยัง server
 
     print(cli_sock.recv(1024).decode(), end="") # print สื่งที่ server ส่งตอบกลับมาบน console
-    password = input()
+    password = pwinput.pwinput(prompt='', mask='*')
     cli_sock.send(encryptedKeyAndMessageForAuthentication(password)) # ส่ง encrypt message (password) ไปยัง server
 
     response = cli_sock.recv(1024).decode()
