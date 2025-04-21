@@ -12,6 +12,15 @@ import logging
 from database import Database 
 from loginRegister import AuthHandler
 
+import time
+
+connection_log = {}  
+banned_ips = {}      
+
+MAX_ATTEMPTS = 5     # จำนวนครั้งที่เชื่อต่อ
+TIME_WINDOW = 5    # ต่อ กี่วินาที
+BAN_DURATION = 300   # แบนกี่วินาที
+
 
 setup_logging()
 
@@ -65,6 +74,7 @@ def broadcast(message, sender_socket):
 ### ใช้แค่ตอน client login/register
 def authenticate(client_socket, auth_handler):
     try:
+        client_ip, _ = client_socket.getpeername() ## เปลี่ยน add เป็น IP + Port
         choice = client_socket.recv(2048) ### รับ choice ที่ user เลือก ( ควรจะได้รับมาเป็น AES message ที่ encrypt ซ้อนด้วย public key ของ server อีกที)
         if not choice:
             print("[INFO] Client disconnected before sending any data.")
@@ -93,7 +103,7 @@ def authenticate(client_socket, auth_handler):
         if plain_msg == "1":  # Register
             auth_handler.register(client_socket)
         elif plain_msg == "2":  # Login
-            result = auth_handler.login(client_socket)
+            result = auth_handler.login(client_socket,client_ip)
             if result == 20:
                 return None
             else:
@@ -103,7 +113,7 @@ def authenticate(client_socket, auth_handler):
             return None
     except Exception as e:
         print(f"[ERROR] Exception in authenticate(): {e}")
-        return None
+        return "quit"
 
 
 #### จัดการ client แต่ละตัว ในนี้ ####
@@ -111,6 +121,25 @@ def handle_client(client_socket, addr):
     global clients
     auth_handler = AuthHandler(private_key)
     username = None ### เริ่มแรกยังไม่ login ให้ username = None
+
+    ip = addr[0]
+    current_time = time.time()
+
+    # ดูว่า ip ถูกแบนอยู่มั้ย
+    if ip in banned_ips and current_time < banned_ips[ip]:
+        print(f"[WARN] Connection attempt from banned IP: {ip}")
+        client_socket.close()
+        return
+
+    # เซฟเวลาการเชื่อต่อล่าสุด
+    connection_log.setdefault(ip, []).append(current_time)
+    connection_log[ip] = [t for t in connection_log[ip] if current_time - t <= TIME_WINDOW]
+
+    if len(connection_log[ip]) > MAX_ATTEMPTS:
+        banned_ips[ip] = current_time + BAN_DURATION
+        print(f"[WARN] Banning IP {ip} for {BAN_DURATION} seconds due to too many connections.")
+        client_socket.close()
+        return
 
     while username is None:  ### ลูปรอใน function "authenticate()"
         username = authenticate(client_socket, auth_handler)

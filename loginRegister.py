@@ -1,6 +1,7 @@
 import json
 import bcrypt
 import re
+import time
 from database import Database 
 from crypto_utils import aes_decrypt, rsa_decrypt
 
@@ -10,8 +11,11 @@ with open("config.json", "r") as file:
 
 class AuthHandler:
     def __init__(self, private_key):
-        self.db = Database() # สร้าง object สำหรับเชื่อมต่อกับฐานข้อมูล
-        self.private_key = private_key # กำหนด private key ของ server สำหรับใช้ถอดรหัส
+        self.db = Database()
+        self.private_key = private_key
+
+        self.failed_attempts = {} 
+        self.banned_ips = {}    
 
     #### ใช้ เซฟข้อมูล user ลงใน database ตอน register
     def register_user(self, username, password):
@@ -51,7 +55,18 @@ class AuthHandler:
    
     
    ### ใช้สหรับ login 
-    def login(self, client_socket):
+    def login(self, client_socket, clientIP):
+        current_time = time.time() # เช็คเวลาปัจจุบัน
+        
+        #ดูว่า ip ถูกแบนอยู่มั้ย
+        if clientIP in self.banned_ips:
+            if current_time < self.banned_ips[clientIP]:
+                client_socket.send(b"You are temporarily banned due to multiple failed login attempts. Try again later.\n")
+                return None
+            else:
+                del self.banned_ips[clientIP]  #ปลดแบนถ้าเวลาเกิน 5 นาที
+
+
         client_socket.send(b"Enter username: ") # ส่ง Prompt ให้ กรอก username ไปยัง client_socket
         username = client_socket.recv(1024) # รอรับข้อความจาก client_socket
         username = self.decrypt_message(username) #ถอดรหัสข้อความ AES ที่ถูก encrypt ซ้อนมาด้วย public key ของ server
@@ -61,12 +76,27 @@ class AuthHandler:
         password = self.decrypt_message(password) # ถอดรหัสข้อความ
 
         user = self.db.get_user_by_username(username) # ตรวจสอบผู้ใช้ในฐานข้อมูล
-        if user and bcrypt.checkpw(password.encode(), user[2]):  # ← use index instead of 'password'
+        if user and bcrypt.checkpw(password.encode(), user[2]):
+            if clientIP in self.failed_attempts: #reset fail attemp ถ้ามี
+                del self.failed_attempts[clientIP]
             client_socket.send(b"Login successful. Welcome!\n")
             return username
         else:
-            client_socket.send(b"Invalid username or password. Try again.\n")
-            return 20
+            ### ลง timestamp user ที่ใส่ password ผิด
+            if clientIP not in self.failed_attempts:
+                self.failed_attempts[clientIP] = {'count': 1, 'last_attempt': current_time}
+            else:
+                self.failed_attempts[clientIP]['count'] += 1
+                self.failed_attempts[clientIP]['last_attempt'] = current_time
+
+            if self.failed_attempts[clientIP]['count'] >= 3:
+                self.banned_ips[clientIP] = current_time + 300  # แบน 5 นาที
+                del self.failed_attempts[clientIP]
+                client_socket.send(b"Too many failed attempts. You are banned for 5 minutes.\n")
+            else:
+                client_socket.send(b"Invalid username or password. Try again.\n")
+
+            return 20 #จำไม่ได้ละว่าทำไม แต่ใน server handle ทั้ง retur none & 20 และแยกหน้าที่กัน
     
 
 ### ใช้ถอดรหัสข้อความ จาก client ที่ส่งมาเป็น -> SERVER_Public_Key(Client_AES_Key(ข้อความจริงๆ))
