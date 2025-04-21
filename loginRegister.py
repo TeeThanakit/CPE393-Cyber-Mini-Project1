@@ -1,5 +1,6 @@
 import json
 import bcrypt
+import re
 from database import Database 
 from crypto_utils import aes_decrypt, rsa_decrypt
 
@@ -37,8 +38,8 @@ class AuthHandler:
         if len(password) < 8 or len(password) > 22:
             client_socket.send(b"Password must be between 8-22 characters. Try again.\n")
             return
-        elif not password.isalnum():
-            client_socket.send(b"Password should not contain special characters. Try again.\n")
+        elif not re.search(r"[^a-zA-Z0-9]", password):
+            client_socket.send(b"Password must include at least one special character. Try again.\n")
             return
         if user:
             client_socket.send(b"Username already exists. Try again.\n")  # ถ้ามีผู้ใช้อยู่แล้ว ให้แจ้งเตือน
