@@ -2,6 +2,7 @@ import json
 import bcrypt
 import re
 import time
+import uuid
 from database import Database 
 from crypto_utils import aes_decrypt, rsa_decrypt
 
@@ -19,8 +20,9 @@ class AuthHandler:
 
     #### ใช้ เซฟข้อมูล user ลงใน database ตอน register
     def register_user(self, username, password):
+        user_id = str(uuid.uuid4())
         hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
-        return self.db.register_user(username, hashed_password)
+        return self.db.register_user(username, hashed_password, user_id)
 
 
 

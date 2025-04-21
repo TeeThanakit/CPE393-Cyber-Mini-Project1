@@ -232,7 +232,8 @@ def main():
                 conn_sckt.send(b"Server full. Try again later.\n")
                 conn_sckt.close()
                 continue
-            ##ส่ง public key ของเซิฟเวอร์ ไปให้ client ใช้ เพื่อเข้ารหัสข้อความ AES ในขั้นตอน login/ 
+            ##ส่ง public key ของเซิฟเวอร์ ไปให้ client ใช้ เพื่อเข้ารหัสข้อความ AES ในขั้นตอน login/ '
+            print(b"Sending Public Key to Client")
             conn_sckt.send(b'SERVERPUBKEY:' + serialized_pubkey)
             
 

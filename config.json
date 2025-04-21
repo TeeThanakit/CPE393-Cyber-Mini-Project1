@@ -4,5 +4,5 @@
 "USER_DB_FILE": "user_db.txt",
 
 "AES_Encryption": true,
-"RSA_Encryption": false
+"RSA_Encryption": true
 }

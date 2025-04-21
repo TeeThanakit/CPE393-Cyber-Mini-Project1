@@ -97,11 +97,13 @@ def receive_messages():
                 peer_key = msg[len(b'PUBKEY:'):]
                 peer_pub = load_public_key(peer_key)
                 public_keys['peer'] = peer_pub
+                # print("Peer Public Key Recieved")
                 continue
             elif msg.startswith(b'SERVERPUBKEY:'): ##เมื่อขึ้นต้นด้วย SERVERPUBKEY แสดงว่าเป็น public key ของ server เพื่อใช้เข้ารหัส login/register (choice, username, password)
                 server_key = msg[len(b'SERVERPUBKEY:'):]
                 server_pub = load_public_key(server_key)
                 server_public_keys['server'] = server_pub
+                # print("Server Public Key Recieved")
                 break
             elif msg.startswith(b'ENC:'): ##ขึ้นต้นด้วย ENC แปลว่าเป็นข้อความปกติที่ถูกส่งมาจากอีก client ผ่าน server เป็นตัวกลาง (การจะถอดรหัสนี้ได้ต้องใช้ private key ของตัว client เอง)
                 try:
