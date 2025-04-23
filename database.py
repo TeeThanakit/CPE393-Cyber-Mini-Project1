@@ -32,11 +32,11 @@ class Database:
                     "INSERT INTO users (username, password) VALUES (?, ?);",
                     (username, hashed)
                 )
-            print("✅ ลงทะเบียนผู้ใช้สำเร็จ.")
+            print("succesfully registered")
             return True
         except sqlite3.IntegrityError:
             # ถ้าชื่อผู้ใช้ซ้ำ จะแสดงข้อความว่าใช้ชื่อผู้ใช้นี้ไม่ได้
-            print("❗ ชื่อผู้ใช้มีอยู่แล้ว.")
+            print("There is already a user with this username.")
             return False
 
     def validate_login(self, username, password):
