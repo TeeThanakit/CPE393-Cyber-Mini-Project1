@@ -3,6 +3,6 @@
 "SERVER_PORT": 50001,
 "USER_DB_FILE": "user_db.txt",
 
-"AES_Encryption": false,
+"AES_Encryption": true,
 "RSA_Encryption": false
 }

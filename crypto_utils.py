@@ -22,46 +22,33 @@ def generate_aes_key(length=32):
     return urandom(length)
 
 def aes_encrypt(key, plaintext):
-
-    # ถ้าอยากได้ config update โดยไม่ต้องรี server เพื่อเทส ให้ uncomment
     config = load_config()
-
-
+    
     if config["AES_Encryption"]:
-        ## Encrypt plaintext using AES-CBC with random IV. ##
-        
-        iv = urandom(16)
-        padder = padding.PKCS7(128).padder()
-        padded_data = padder.update(plaintext.encode()) + padder.finalize()
-
-        cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
+        # AES-GCM doesn't use padding
+        nonce = urandom(12)  # 96-bit recommended size for GCM
+        cipher = Cipher(algorithms.AES(key), modes.GCM(nonce), backend=default_backend())
         encryptor = cipher.encryptor()
-        ciphertext = encryptor.update(padded_data) + encryptor.finalize()
-
-        return iv + ciphertext  # prepend IV for use in decryption
+        ciphertext = encryptor.update(plaintext.encode()) + encryptor.finalize()
+        tag = encryptor.tag
+        return nonce + tag + ciphertext  # send all three parts together
     else:
-        return plaintext.encode()
+        return plaintext.encode('utf-8')
 
 def aes_decrypt(key, ciphertext):
-
-    # ถ้าอยากได้ config update โดยไม่ต้องรี server เพื่อเทส ให้ uncomment
     config = load_config()
 
     if config["AES_Encryption"]:
-        ##Decrypt AES-CBC encrypted ciphertext (expects IV at start).##
-        iv = ciphertext[:16]
-        actual_cipher = ciphertext[16:]
+        nonce = ciphertext[:12]         # 12-byte nonce
+        tag = ciphertext[12:28]         # 16-byte tag
+        actual_cipher = ciphertext[28:] # remaining is ciphertext
 
-        cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
+        cipher = Cipher(algorithms.AES(key), modes.GCM(nonce, tag), backend=default_backend())
         decryptor = cipher.decryptor()
-        padded_plaintext = decryptor.update(actual_cipher) + decryptor.finalize()
-
-        unpadder = padding.PKCS7(128).unpadder()
-        plaintext = unpadder.update(padded_plaintext) + unpadder.finalize()
-
-        return plaintext.decode()
+        plaintext = decryptor.update(actual_cipher) + decryptor.finalize()
+        return plaintext.decode('utf-8')
     else:
-        return ciphertext.decode()
+        return ciphertext.decode('utf-8')
 
 
 # === RSA Section === To generate Private/Public Keys || Encrypt/Decrypt AES message
